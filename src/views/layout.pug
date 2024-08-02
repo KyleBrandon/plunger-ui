@@ -1,0 +1,69 @@
+doctype html
+html
+  head
+    title= title
+    script(src="https://code.jquery.com/jquery-3.6.0.min.js")
+    style.
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      .container {
+        width: 80%;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      .header {
+        text-align: center;
+        margin-top: 20px;
+      }
+      .row {
+        display: flex;
+        justify-content: space-between;
+        margin: 10px 0;
+      }
+      .column {
+        width: 48%;
+        border: 1px solid #ccc;
+        padding: 10px;
+        box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.1);
+      }
+      .cell {
+        margin-bottom: 10px;
+      }
+      .cell-title {
+        font-weight: bold;
+      }
+      .cell-data {
+        margin: 5px 0;
+      }
+      .log-container {
+        margin-top: 30px;
+        border: 1px solid #ccc;
+        padding: 10px;
+        box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.1);
+      }
+      .log-title {
+        font-weight: bold;
+        margin-bottom: 10px;
+      }
+      .log {
+        max-height: 200px;
+        overflow-y: auto;
+        background: #f9f9f9;
+        padding: 10px;
+        border: 1px solid #ddd;
+      }
+      .buttons {
+        margin-top: 20px;
+        text-align: center;
+      }
+      .temperature-info {
+        margin-top: 20px;
+        text-align: left;
+      }
+    link(rel='stylesheet', href='/stylesheets/style.css')
+  body
+    block content
