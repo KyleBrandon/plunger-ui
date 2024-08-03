@@ -11,10 +11,6 @@ block content
                     .temperature-info
                         p.cell-data( data-id="current-water-temp" ) Current: <span/>
                         p.cell-data(data-id="lowest-water-temp") Lowest: <span/>
-                        p.cell-data(data-id="lowest-water-time") Recorded At: <span/>
-                        p.cell-data(data-id="lowest-water-mark") Mark Start: <span/>
-                    .buttons
-                        button#mark-water-temperature(type='button') Mark Temperature
             .column
                 .cell
                     p.cell-title Room Temperature
@@ -32,6 +28,9 @@ block content
             .column
                 .cell
                 p.cell-title Ozone Power
+                .ozone-info
+                    .buttons
+                        button#ozone-power(type='button') Start Ozone
             .column
                 .cell
                 p.cell-title Light Power
@@ -42,48 +41,28 @@ block content
                     url: '/api/sensors',
                     method: 'GET',
                     success: function(sensorData) {
-                        // update the current water temperature
-                        $(`.cell-data[data-id='current-water-temp'] span`).text(`${sensorData.waterTemperature} °F`)
+                        let waterMessage = sensorData.waterMessage;
+                        // update the current water temperature 
+                        if (waterMessage == '') {
+                            waterMessage = `${sensorData.waterTemperature} °F`;
+                        }
 
-                        // update the current room temperature and history
-                        $(`.cell-data[data-id='current-room-temp'] span`).text(`${sensorData.roomTemperature} °F`)
+                        $(`.cell-data[data-id='current-water-temp'] span`).text(waterMessage)
+
+                        // update the current room temperature 
+                        let roomMessage = sensorData.roomMessage;
+                        if (roomMessage == '') {
+                            roomMessage = `${sensorData.roomTemperature} °F`;
+                        }
+                        $(`.cell-data[data-id='current-room-temp'] span`).text(roomMessage)
 
                         // update leak indication
-                        $(`.cell-data[data-id='leak-present']`).text(sensorData.leakPresent ? "True" : "False");
-
-                    },
-                    error: function(xhr, status, error) {
-                        console.error('Error:', status, error);
-                    }
-                });
-
-                $.ajax({
-                    url: '/api/sensors/water/mark-lowest',
-                    method: 'GET',
-                    success: function(data) {
-                        if (data?.lowestWaterTemperature) {
-                            $(`.cell-data[data-id='lowest-water-temp'] span`).text(`${data.lowestWaterTemperature} °F`);
-                        } else {
-                            $(`.cell-data[data-id='lowest-water-temp'] span`).text("");
+                        let leakMessage = sensorData.leakMessage;
+                        if (leakMessage == '') {
+                            leakMessage = sensorData.leakPresent ? "True" : "False";
                         }
+                        $(`.cell-data[data-id='leak-present']`).text(leakMessage);
 
-                        if (data?.lowestWaterTime) {
-                            $(`.cell-data[data-id='lowest-water-time'] span`).text(data.lowestWaterTime);
-                        } else {
-                            $(`.cell-data[data-id='lowest-water-time'] span`).text("");
-                        }
-
-                        if (data?.markStartTime ) {
-                            $(`.cell-data[data-id='lowest-water-mark'] span`).text(`${data.markStartTime}`);
-                        } else {
-                            $(`.cell-data[data-id='lowest-water-mark'] span`).text("");
-                        }
-
-                        // if (data?.markStartTime && data?.markStartTemperature) {
-                        //     $(`.cell-data[data-id='lowest-water-mark'] span`).text(`${data.markStartTemperature} °F at ${data.markStartTime}`);
-                        // } else {:waterTemperature
-                        //     $(`.cell-data[data-id='lowest-water-mark'] span`).text("");
-                        // }
                     },
                     error: function(xhr, status, error) {
                         console.error('Error:', status, error);
@@ -94,7 +73,7 @@ block content
             updateCellData();
             setInterval(updateCellData, 5000);
 
-            $('#mark-water-temperature').click(function() {
+            $('#ozone-power').click(function() {
                 $.ajax({
                     url: '/api/sensors/water/mark-temperature',
                     method: 'POST',
@@ -106,4 +85,5 @@ block content
                     }
                 });
             });
+
         });
