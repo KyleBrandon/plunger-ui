@@ -180,9 +180,7 @@ async function readLatestLeak() {
 
 async function readOzoneStatus() {
     try {
-        const response = await axios.get(
-            `http://10.0.10.240:8080/v1/ozone/status`,
-        );
+        const response = await axios.get(`http://10.0.10.240:8080/v1/ozone`);
 
         const ozoneResult: OzoneStatus = response.data;
         return ozoneResult;
