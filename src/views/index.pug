@@ -29,6 +29,10 @@ block content
                 .cell
                 p.cell-title Ozone Power
                 .ozone-info
+                    p.cell-data( data-id="ozone-status" ) Satus: <span/>
+                    p.cell-data( data-id="ozone-start" ) Start Time: <span/>
+                    p.cell-data( data-id="ozone-end" ) End Time: <span/>
+                    p.cell-data( data-id="ozone-time-left" ) Time Left: <span/>
                     .buttons
                         button#ozone-power(type='button') Start Ozone
             .column
@@ -44,7 +48,7 @@ block content
                         let waterMessage = sensorData.waterMessage;
                         // update the current water temperature 
                         if (waterMessage == '') {
-                            waterMessage = `${sensorData.waterTemperature} °F`;
+                            waterMessage = `${sensorData.waterTemperature.toFixed(1)} °F`;
                         }
 
                         $(`.cell-data[data-id='current-water-temp'] span`).text(waterMessage)
@@ -52,7 +56,7 @@ block content
                         // update the current room temperature 
                         let roomMessage = sensorData.roomMessage;
                         if (roomMessage == '') {
-                            roomMessage = `${sensorData.roomTemperature} °F`;
+                            roomMessage = `${sensorData.roomTemperature.toFixed(1)} °F`;
                         }
                         $(`.cell-data[data-id='current-room-temp'] span`).text(roomMessage)
 
@@ -63,6 +67,9 @@ block content
                         }
                         $(`.cell-data[data-id='leak-present']`).text(leakMessage);
 
+
+                        // update the ozone message
+                        updateOzoneStatus(sensorData);
                     },
                     error: function(xhr, status, error) {
                         console.error('Error:', status, error);
@@ -75,15 +82,28 @@ block content
 
             $('#ozone-power').click(function() {
                 $.ajax({
-                    url: '/api/sensors/water/mark-temperature',
+                    url: '/api/ozone',
                     method: 'POST',
                     success: function(data) {
-                        console.log('Started monitoring');
                     },
                     error: function(xhr, status, error) {
                         console.error(`Error: ${status} ${error}`);
                     }
                 });
             });
+
+            function updateOzoneStatus(sensorData) {
+                $(`.cell-data[data-id='ozone-status'] span`).text(sensorData.ozoneStatus);
+                $(`.cell-data[data-id='ozone-start'] span`).text(sensorData.ozoneStart);
+                $(`.cell-data[data-id='ozone-end'] span`).text(sensorData.ozoneEnd);
+                $(`.cell-data[data-id='ozone-time-left'] span`).text(sensorData.ozoneTimeLeft);
+
+                if (sensorData.ozoneStatus == 'Running') {
+                    $(`#ozone-power`).text("Stop Ozone");
+                } else {
+                    $(`#ozone-power`).text("Start Ozone");
+                }
+
+            }
 
         });

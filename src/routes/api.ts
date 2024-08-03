@@ -1,5 +1,6 @@
 import express, { Request, Response } from 'express';
 import axios, { AxiosError } from 'axios';
+import moment from 'moment';
 var router = express.Router();
 
 class SensorDataClass {
@@ -9,6 +10,10 @@ class SensorDataClass {
     _roomMessage: string = 'room temperature could not be read';
     _leakPresent: boolean = false;
     _leakMessage: string = 'leak sensor not read';
+    ozoneStatus: string = 'ozone not read';
+    ozoneStart: string = '';
+    ozoneEnd: string = '';
+    ozoneTimeLeft: string = '';
 
     get waterTemperature() {
         return this._waterTemperature;
@@ -57,6 +62,10 @@ class SensorDataClass {
             roomMessage: this.roomMessage,
             leakPresent: this.leakPresent,
             leakMessage: this.leakMessage,
+            ozoneStatus: this.ozoneStatus,
+            ozoneStart: this.ozoneStart,
+            ozoneEnd: this.ozoneEnd,
+            ozoneTimeLeft: this.ozoneTimeLeft,
         };
     }
 }
@@ -72,6 +81,15 @@ interface TemperatureReading {
 interface LeakReading {
     updated_at: Date;
     leak_detected: boolean;
+}
+
+interface OzoneStatus {
+    status: string;
+    start_time: Date;
+    end_time: Date;
+    result: string;
+    seconds_left: number;
+    cancel_requested: boolean;
 }
 
 router.get('/sensors', async function (req: Request, res: Response) {
@@ -91,11 +109,37 @@ router.get('/sensors', async function (req: Request, res: Response) {
         if (leaks.length == 1) {
             sensorData.leakPresent = leaks[0].leak_detected;
         }
+
+        const ozoneStatus = await readOzoneStatus();
+        if (ozoneStatus) {
+            sensorData.ozoneStatus = ozoneStatus.status;
+            sensorData.ozoneStart = moment(ozoneStatus.start_time).format(
+                'YYYY-MM-DD HH:mm:ss',
+            );
+            sensorData.ozoneEnd = moment(ozoneStatus.end_time).format(
+                'YYYY-MM-DD HH:mm:ss',
+            );
+            sensorData.ozoneTimeLeft = formatSecondsToHHMMSS(
+                ozoneStatus.seconds_left,
+            );
+        }
     } catch (error) {
         console.error('Error fetching user data:', error);
     }
 
     res.json(sensorData.toJSON());
+});
+
+router.post('/ozone', async function (req: Request, res: Response) {
+    try {
+        let ozoneStatus = await readOzoneStatus();
+
+        if (ozoneStatus && ozoneStatus.status == 'Running') {
+            await axios.post('http://10.0.10.240:8080/v1/ozone/stop');
+        } else {
+            await axios.post('http://10.0.10.240:8080/v1/ozone/start');
+        }
+    } catch (error) {}
 });
 
 async function readTemperatures() {
@@ -134,6 +178,24 @@ async function readLatestLeak() {
     return leakReadings;
 }
 
+async function readOzoneStatus() {
+    try {
+        const response = await axios.get(
+            `http://10.0.10.240:8080/v1/ozone/status`,
+        );
+
+        const ozoneResult: OzoneStatus = response.data;
+        return ozoneResult;
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            handleRequestError(error);
+        } else {
+            console.error('unexpected error:', error);
+        }
+    }
+    return null;
+}
+
 function handleRequestError(error: AxiosError) {
     // The request was made and the server responded with a status code
     // that falls out of the range of 2xx
@@ -154,5 +216,31 @@ function handleRequestError(error: AxiosError) {
         console.error('Error Message:', error.message);
     }
 }
+
+function formatSecondsToHHMMSS(totalSeconds: number) {
+    // Calculate hours, minutes, and seconds
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = (totalSeconds % 60).toFixed(0);
+
+    // Format the values to two digits
+    const formattedHours = String(hours).padStart(2, '0');
+    const formattedMinutes = String(minutes).padStart(2, '0');
+    const formattedSeconds = String(seconds).padStart(2, '0');
+
+    // Combine into HH:MM:SS format
+    return `${formattedHours}:${formattedMinutes}:${formattedSeconds}`;
+}
+
+const TIME_LOCALE_OPTIONS = {
+    // timeZone: 'America/New_York', // Specify your local time zone, if needed
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: 'numeric',
+    second: 'numeric',
+    hour12: true, // Use 12-hour format, set to false for 24-hour format
+};
 
 export default router;
