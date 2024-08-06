@@ -34,10 +34,21 @@ html
         margin-bottom: 10px;
       }
       .cell-title {
-        font-weight: bold;
+          font-weight: bolder;
+          font-size: 20px;
+      }
+      .cell-display {
+        margin-top: 20px 20px;
+        text-align: left;
       }
       .cell-data {
-        margin: 5px 0;
+        margin: 5px 10px;
+        font-weight: bold;
+        font-style: italic;
+      }
+      .cell-data span {
+        font-weight: normal;
+        font-style: normal;
       }
       .log-container {
         margin-top: 30px;
@@ -60,10 +71,10 @@ html
         margin-top: 20px;
         text-align: center;
       }
-      .temperature-info {
-        margin-top: 20px;
-        text-align: left;
+      .button {
+        padding: 10px 20px;
+        font-size: 15px;
+        border-radius: 10px;
       }
-    link(rel='stylesheet', href='/stylesheets/style.css')
   body
     block content

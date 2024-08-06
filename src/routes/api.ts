@@ -5,15 +5,16 @@ var router = express.Router();
 
 class SensorDataClass {
     _waterTemperature: number = 0;
-    _waterMessage: string = 'water temperature could not be read';
+    _waterMessage: string = 'Water temperature could not be read';
     _roomTemperature: number = 0;
-    _roomMessage: string = 'room temperature could not be read';
+    _roomMessage: string = 'Room temperature could not be read';
     _leakPresent: boolean = false;
-    _leakMessage: string = 'leak sensor not read';
-    ozoneStatus: string = 'ozone not read';
+    _leakMessage: string = 'Leak sensor could not be read';
+    ozoneStatus: string = 'Ozone status could not be read';
     ozoneStart: string = '';
     ozoneEnd: string = '';
     ozoneTimeLeft: string = '';
+    pumpStatus: string = 'Pump status could not be read';
 
     get waterTemperature() {
         return this._waterTemperature;
@@ -66,6 +67,7 @@ class SensorDataClass {
             ozoneStart: this.ozoneStart,
             ozoneEnd: this.ozoneEnd,
             ozoneTimeLeft: this.ozoneTimeLeft,
+            pumpStatus: this.pumpStatus,
         };
     }
 }
@@ -92,6 +94,21 @@ interface OzoneStatus {
     cancel_requested: boolean;
 }
 
+interface PumpStatus {
+    pump_on: boolean;
+}
+
+interface PlungeResponse {
+    message: string;
+    id?: string;
+    start_time?: Date;
+    start_room_temp?: string;
+    start_water_temp?: string;
+    end_time?: Date;
+    end_water_temp?: string;
+    end_room_temp?: string;
+}
+
 router.get('/sensors', async function (req: Request, res: Response) {
     const sensorData = new SensorDataClass();
     try {
@@ -113,15 +130,22 @@ router.get('/sensors', async function (req: Request, res: Response) {
         const ozoneStatus = await readOzoneStatus();
         if (ozoneStatus) {
             sensorData.ozoneStatus = ozoneStatus.status;
-            sensorData.ozoneStart = moment(ozoneStatus.start_time).format(
-                'YYYY-MM-DD HH:mm:ss',
-            );
+            sensorData.ozoneStart = sensorData.ozoneStart = moment(
+                ozoneStatus.start_time,
+            ).format('YYYY-MM-DD h:mm:ssa');
             sensorData.ozoneEnd = moment(ozoneStatus.end_time).format(
-                'YYYY-MM-DD HH:mm:ss',
+                'YYYY-MM-DD h:mm:ssa',
             );
             sensorData.ozoneTimeLeft = formatSecondsToHHMMSS(
                 ozoneStatus.seconds_left,
             );
+        }
+
+        const pumpStatus = await readPumpStatus();
+        if (pumpStatus) {
+            sensorData.pumpStatus = pumpStatus.pump_on ? 'Running' : 'Stopped';
+        } else {
+            sensorData.pumpStatus = 'Pump status could not be read';
         }
     } catch (error) {
         console.error('Error fetching user data:', error);
@@ -139,7 +163,73 @@ router.post('/ozone', async function (req: Request, res: Response) {
         } else {
             await axios.post('http://10.0.10.240:8080/v1/ozone/start');
         }
-    } catch (error) {}
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            handleRequestError(error);
+        } else {
+            console.error('unexpected error:', error);
+        }
+    }
+});
+
+router.post('/plunge/start', async function (req: Request, res: Response) {
+    let plungeResponse: PlungeResponse = {
+        message: 'unable to start plunge timer',
+    };
+    try {
+        const response = await axios.post('http://10.0.10.240:8080/v1/plunges');
+        plungeResponse = response.data as PlungeResponse;
+        plungeResponse.message = 'Started';
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            plungeResponse.message = error.response?.data;
+
+            handleRequestError(error);
+        } else {
+            console.error('unexpected error:', error);
+        }
+    }
+    console.log(plungeResponse);
+    res.json(plungeResponse);
+});
+
+router.put('/plunge/stop', async function (req: Request, res: Response) {
+    let plungeResponse: PlungeResponse = {
+        message: 'unable to stop plunge timer',
+    };
+    try {
+        // Look for a currently running plunge
+        let response = await axios.get(
+            'http://10.0.10.240:8080/v1/plunges?filter=current',
+        );
+
+        const plungeResponses = response.data as PlungeResponse[];
+        if (plungeResponses.length == 0) {
+            // TODO: error
+        }
+
+        plungeResponse = plungeResponses[0];
+
+        // update the current plunge to stop it
+        response = await axios.put(
+            `http://10.0.10.240:8080/v1/plunges/${plungeResponse.id}`,
+        );
+        plungeResponse = response.data as PlungeResponse;
+        plungeResponse.message = 'Stopped';
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            if (error.response && error.response.status == 404) {
+                plungeResponse = {
+                    message: error.response?.data,
+                };
+            }
+
+            handleRequestError(error);
+        } else {
+            console.error('unexpected error:', error);
+        }
+    }
+    res.json(plungeResponse);
 });
 
 async function readTemperatures() {
@@ -194,6 +284,22 @@ async function readOzoneStatus() {
     return null;
 }
 
+async function readPumpStatus() {
+    try {
+        const response = await axios.get(`http://10.0.10.240:8080/v1/pump`);
+
+        const pumpResult: PumpStatus = response.data;
+        return pumpResult;
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            handleRequestError(error);
+        } else {
+            console.error('unexpected error:', error);
+        }
+    }
+    return null;
+}
+
 function handleRequestError(error: AxiosError) {
     // The request was made and the server responded with a status code
     // that falls out of the range of 2xx
@@ -229,16 +335,5 @@ function formatSecondsToHHMMSS(totalSeconds: number) {
     // Combine into HH:MM:SS format
     return `${formattedHours}:${formattedMinutes}:${formattedSeconds}`;
 }
-
-const TIME_LOCALE_OPTIONS = {
-    // timeZone: 'America/New_York', // Specify your local time zone, if needed
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: 'numeric',
-    second: 'numeric',
-    hour12: true, // Use 12-hour format, set to false for 24-hour format
-};
 
 export default router;
