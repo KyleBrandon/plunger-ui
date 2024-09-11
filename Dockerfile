@@ -24,7 +24,7 @@ WORKDIR /app
 
 # Copy needed output from builder
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/public ./dist/public
+COPY --from=builder /app/public ./public
 COPY --from=builder /app/src/views ./dist/views
 COPY --from=builder /app/package*.json ./
 
