@@ -1,5 +1,5 @@
 import express, { Request, Response } from 'express';
-import axios, { AxiosError } from 'axios';
+import axios, { AxiosError, AxiosResponse } from 'axios';
 import moment from 'moment';
 var router = express.Router();
 
@@ -100,13 +100,16 @@ interface PumpStatus {
 
 interface PlungeResponse {
     message: string;
+    plunge_time: string;
     id?: string;
     start_time?: Date;
-    start_room_temp?: string;
-    start_water_temp?: string;
     end_time?: Date;
-    end_water_temp?: string;
+    elapsed_time?: number;
+    running?: boolean;
+    start_room_temp?: string;
     end_room_temp?: string;
+    end_water_temp?: string;
+    start_water_temp?: string;
 }
 
 router.get('/sensors', async function (req: Request, res: Response) {
@@ -130,17 +133,18 @@ router.get('/sensors', async function (req: Request, res: Response) {
         const ozoneStatus = await readOzoneStatus();
         if (ozoneStatus) {
             sensorData.ozoneStatus = ozoneStatus.status;
-            sensorData.ozoneStart = sensorData.ozoneStart = moment(
-                ozoneStatus.start_time,
-            ).format('YYYY-MM-DD h:mm:ssa');
+            sensorData.ozoneStart = moment(ozoneStatus.start_time).format(
+                'h:mm:ssa',
+            );
             sensorData.ozoneEnd = moment(ozoneStatus.end_time).format(
-                'YYYY-MM-DD h:mm:ssa',
+                'h:mm:ssa',
             );
             sensorData.ozoneTimeLeft = formatSecondsToHHMMSS(
                 ozoneStatus.seconds_left,
             );
         }
 
+        // TODO: I don't like this, push the text parts up to the UI and out of the API
         const pumpStatus = await readPumpStatus();
         if (pumpStatus) {
             sensorData.pumpStatus = pumpStatus.pump_on ? 'Running' : 'Stopped';
@@ -172,65 +176,97 @@ router.post('/ozone', async function (req: Request, res: Response) {
     }
 });
 
-router.post('/plunge/start', async function (req: Request, res: Response) {
-    let plungeResponse: PlungeResponse = {
-        message: 'unable to start plunge timer',
-    };
+router.get('/pump', async function (req: Request, res: Response) {
+    let pumpStatus = await readPumpStatus();
+    res.json(pumpStatus);
+});
+
+router.post('/pump', async function (req: Request, res: Response) {
     try {
-        const response = await axios.post('http://10.0.10.240:8080/v1/plunges');
-        plungeResponse = response.data as PlungeResponse;
-        plungeResponse.message = 'Started';
+        let pumpStatus = await readPumpStatus();
+
+        if (pumpStatus && pumpStatus.pump_on) {
+            await axios.post('http://10.0.10.240:8080/v1/pump/stop');
+        } else {
+            await axios.post('http://10.0.10.240:8080/v1/pump/start');
+        }
     } catch (error) {
         if (axios.isAxiosError(error)) {
-            plungeResponse.message = error.response?.data;
+            handleRequestError(error);
+        } else {
+            console.error('unexpected error:', error);
+        }
+    }
+});
+
+router.get('/plunge', async function (req: Request, res: Response) {
+    let plungeStatus = await readPlungeStatus();
+    res.json(plungeStatus);
+});
+
+router.post('/plunge', async function (req: Request, res: Response) {
+    let plungeStatus: PlungeResponse = {
+        message: 'unable to get plunge status',
+        plunge_time: '',
+    };
+    try {
+        plungeStatus = await readPlungeStatus();
+        console.log(plungeStatus);
+        let response: AxiosResponse;
+        if (plungeStatus.running) {
+            response = await axios.put(
+                `http://10.0.10.240:8080/v1/plunges/${plungeStatus.id}`,
+            );
+        } else {
+            response = await axios.post('http://10.0.10.240:8080/v1/plunges');
+        }
+
+        plungeStatus = response.data as PlungeResponse;
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            plungeStatus.message = error.response?.data;
 
             handleRequestError(error);
         } else {
             console.error('unexpected error:', error);
         }
     }
-    console.log(plungeResponse);
-    res.json(plungeResponse);
+    res.json(plungeStatus);
 });
 
-router.put('/plunge/stop', async function (req: Request, res: Response) {
+async function readPlungeStatus() {
     let plungeResponse: PlungeResponse = {
-        message: 'unable to stop plunge timer',
+        message: 'unable to get plunge status',
+        plunge_time: '',
     };
     try {
-        // Look for a currently running plunge
-        let response = await axios.get(
+        const response = await axios.get(
             'http://10.0.10.240:8080/v1/plunges?filter=current',
         );
-
-        const plungeResponses = response.data as PlungeResponse[];
-        if (plungeResponses.length == 0) {
-            // TODO: error
+        plungeResponse = (response.data as PlungeResponse[])[0];
+        if (plungeResponse.running) {
+            plungeResponse.message = 'Started';
+        } else {
+            plungeResponse.message = 'Stopped';
         }
 
-        plungeResponse = plungeResponses[0];
-
-        // update the current plunge to stop it
-        response = await axios.put(
-            `http://10.0.10.240:8080/v1/plunges/${plungeResponse.id}`,
-        );
-        plungeResponse = response.data as PlungeResponse;
-        plungeResponse.message = 'Stopped';
+        if (plungeResponse.elapsed_time) {
+            plungeResponse.plunge_time = formatSecondsToHHMMSS(
+                plungeResponse.elapsed_time,
+            );
+        }
     } catch (error) {
         if (axios.isAxiosError(error)) {
-            if (error.response && error.response.status == 404) {
-                plungeResponse = {
-                    message: error.response?.data,
-                };
-            }
+            plungeResponse.message = error.response?.data.error;
 
             handleRequestError(error);
         } else {
             console.error('unexpected error:', error);
         }
     }
-    res.json(plungeResponse);
-});
+
+    return plungeResponse;
+}
 
 async function readTemperatures() {
     let temperatures: TemperatureReading[] = [];
@@ -334,6 +370,10 @@ function formatSecondsToHHMMSS(totalSeconds: number) {
 
     // Combine into HH:MM:SS format
     return `${formattedHours}:${formattedMinutes}:${formattedSeconds}`;
+}
+
+function sleep(ms: number) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 export default router;
