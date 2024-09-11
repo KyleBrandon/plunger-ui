@@ -1,5 +1,12 @@
 $(document).ready(function () {
+    //initialize the UI
+    updateCellData();
+
+    // Refresh UI every 5 seconds
+    setInterval(updateCellData, 5000);
+
     function updateCellData() {
+        // TODO: break this up to read individual components, perhaps use websockets to get notificaiton of changes
         $.ajax({
             url: '/api/sensors',
             method: 'GET',
@@ -54,9 +61,6 @@ $(document).ready(function () {
         });
     }
 
-    updateCellData();
-    setInterval(updateCellData, 5000);
-
     $('#ozone-power').click(function () {
         $.ajax({
             url: '/api/ozone',
@@ -68,7 +72,35 @@ $(document).ready(function () {
         });
     });
 
+    $('#pump-power').click(function () {
+        debounceButton('#plunge-timer');
+
+        // TODO: read the current pump status instead of relying on the UI
+        let pumpStatus = $(`.cell-data[data-id='pump-status'] span`).text();
+        message = 'Are you certain you wish to turn the pump off?';
+
+        if (pumpStatus != 'Running') {
+            message = 'Are you certain you wish to turn the pump on?';
+        }
+
+        var userResponse = confirm(message);
+
+        if (userResponse) {
+            $.ajax({
+                url: '/api/pump',
+                method: 'POST',
+                success: function (data) {
+                    updatePumpStatus();
+                },
+                error: function (xhr, status, error) {
+                    console.error(`Error: ${status} ${error}`);
+                },
+            });
+        }
+    });
+
     $('#plunge-timer').click(function () {
+        debounceButton('#plunge-timer');
         $.ajax({
             url: '/api/plunge',
             method: 'POST',
@@ -80,6 +112,17 @@ $(document).ready(function () {
             },
         });
     });
+
+    function debounceButton(buttonId) {
+        $(buttonId).prop('disabled', true);
+        setTimeout(() => {
+            $(buttonId).prop('disabled', false);
+        }, 500);
+    }
+
+    function updatePumpStatus(data) {
+        $(`.cell-data[data-id='pump-status'] span`).text(sensorData.pumpStatus);
+    }
 
     function updatePlungeStatus(data) {
         if (data.running == true) {

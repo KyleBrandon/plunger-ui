@@ -133,17 +133,18 @@ router.get('/sensors', async function (req: Request, res: Response) {
         const ozoneStatus = await readOzoneStatus();
         if (ozoneStatus) {
             sensorData.ozoneStatus = ozoneStatus.status;
-            sensorData.ozoneStart = sensorData.ozoneStart = moment(
-                ozoneStatus.start_time,
-            ).format('YYYY-MM-DD h:mm:ssa');
+            sensorData.ozoneStart = moment(ozoneStatus.start_time).format(
+                'h:mm:ssa',
+            );
             sensorData.ozoneEnd = moment(ozoneStatus.end_time).format(
-                'YYYY-MM-DD h:mm:ssa',
+                'h:mm:ssa',
             );
             sensorData.ozoneTimeLeft = formatSecondsToHHMMSS(
                 ozoneStatus.seconds_left,
             );
         }
 
+        // TODO: I don't like this, push the text parts up to the UI and out of the API
         const pumpStatus = await readPumpStatus();
         if (pumpStatus) {
             sensorData.pumpStatus = pumpStatus.pump_on ? 'Running' : 'Stopped';
@@ -175,9 +176,31 @@ router.post('/ozone', async function (req: Request, res: Response) {
     }
 });
 
+router.get('/pump', async function (req: Request, res: Response) {
+    let pumpStatus = await readPumpStatus();
+    res.json(pumpStatus);
+});
+
+router.post('/pump', async function (req: Request, res: Response) {
+    try {
+        let pumpStatus = await readPumpStatus();
+
+        if (pumpStatus && pumpStatus.pump_on) {
+            await axios.post('http://10.0.10.240:8080/v1/pump/stop');
+        } else {
+            await axios.post('http://10.0.10.240:8080/v1/pump/start');
+        }
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            handleRequestError(error);
+        } else {
+            console.error('unexpected error:', error);
+        }
+    }
+});
+
 router.get('/plunge', async function (req: Request, res: Response) {
     let plungeStatus = await readPlungeStatus();
-    console.log(plungeStatus);
     res.json(plungeStatus);
 });
 
@@ -347,6 +370,10 @@ function formatSecondsToHHMMSS(totalSeconds: number) {
 
     // Combine into HH:MM:SS format
     return `${formattedHours}:${formattedMinutes}:${formattedSeconds}`;
+}
+
+function sleep(ms: number) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 export default router;
