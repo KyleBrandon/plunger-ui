@@ -1,0 +1,53 @@
+name: CI
+
+# Controls when the action will run.
+on:
+    # Triggers the workflow on push or pull request events but only for main branch
+    push:
+        branches: [main]
+    pull_request:
+        branches: [main]
+
+    # Allows you to run this workflow manually from the Actions tab
+    workflow_dispatch:
+
+jobs:
+    # Build workflow
+    build:
+        # self hosted runner to build on a RPI
+        runs-on: self-hosted
+
+        steps:
+            # Checkout the code
+            - name: Checkout repository
+              uses: actions/checkout@v2
+
+            # build Docker image for Raspberry Pi
+            - name: Build Docker image
+              run: |
+                  docker build \
+                    --platform linux/arm/v7 \
+                    --build-arg PLUNGER_SERVER=${{ secrets.PLUNGER_SERVER }} \
+                    --build-arg PORT=${{ vars.PORT }} \
+                    -t kylebrandon/plunger-ui:latest .
+
+    deploy:
+        needs: build
+        runs-on: self-hosted
+        steps:
+            # Stop and remove the existing container
+            - name: Stop and Remove Existing Docker Container
+              run: |
+                  docker stop plunger-ui || true
+                  docker rm plunger-ui || true
+
+            # Deploy Docker container
+            - name: Run Docker Container
+              run: |
+                  docker run -d \
+                    --name plunger-ui -it \
+                    --restart unless-stopped \
+                    -e PLUNGER_SERVER=${{ secrets.PLUNGER_SERVER }} \
+                    -e PORT=${{ vars.PORT }} \
+                    -p ${{ vars.PORT }}:${{ vars.PORT }} \
+                    kylebrandon/plunger-ui:latest
