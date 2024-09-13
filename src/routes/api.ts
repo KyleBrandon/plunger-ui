@@ -1,6 +1,5 @@
 import express, { Request, Response } from 'express';
 import axios, { AxiosError, AxiosResponse } from 'axios';
-import moment from 'moment';
 var router = express.Router();
 
 class SensorDataClass {
@@ -133,12 +132,8 @@ router.get('/sensors', async function (req: Request, res: Response) {
         const ozoneStatus = await readOzoneStatus();
         if (ozoneStatus) {
             sensorData.ozoneStatus = ozoneStatus.status;
-            sensorData.ozoneStart = moment(ozoneStatus.start_time).format(
-                'h:mm:ssa',
-            );
-            sensorData.ozoneEnd = moment(ozoneStatus.end_time).format(
-                'h:mm:ssa',
-            );
+            sensorData.ozoneStart = ozoneStatus.start_time.toString();
+            sensorData.ozoneEnd = ozoneStatus.end_time.toString();
             sensorData.ozoneTimeLeft = formatSecondsToHHMMSS(
                 ozoneStatus.seconds_left,
             );
