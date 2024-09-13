@@ -133,12 +133,12 @@ router.get('/sensors', async function (req: Request, res: Response) {
         const ozoneStatus = await readOzoneStatus();
         if (ozoneStatus) {
             sensorData.ozoneStatus = ozoneStatus.status;
-            sensorData.ozoneStart = moment(ozoneStatus.start_time).format(
-                'h:mm:ssa',
-            );
-            sensorData.ozoneEnd = moment(ozoneStatus.end_time).format(
-                'h:mm:ssa',
-            );
+            sensorData.ozoneStart = moment(ozoneStatus.start_time)
+                .local()
+                .format('h:mm:ssa');
+            sensorData.ozoneEnd = moment(ozoneStatus.end_time)
+                .local()
+                .format('h:mm:ssa');
             sensorData.ozoneTimeLeft = formatSecondsToHHMMSS(
                 ozoneStatus.seconds_left,
             );
