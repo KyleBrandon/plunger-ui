@@ -152,8 +152,12 @@ $(document).ready(function () {
         $(`.cell-data[data-id='ozone-status'] span`).text(
             sensorData.ozoneStatus,
         );
-        $(`.cell-data[data-id='ozone-start'] span`).text(sensorData.ozoneStart);
-        $(`.cell-data[data-id='ozone-end'] span`).text(sensorData.ozoneEnd);
+        $(`.cell-data[data-id='ozone-start'] span`).text(
+            toLocaleTime(new Date(sensorData.ozoneStart)),
+        );
+        $(`.cell-data[data-id='ozone-end'] span`).text(
+            toLocaleTime(new Date(sensorData.ozoneEnd)),
+        );
         $(`.cell-data[data-id='ozone-time-left'] span`).text(
             sensorData.ozoneTimeLeft,
         );
@@ -163,5 +167,17 @@ $(document).ready(function () {
         } else {
             $(`#ozone-power`).text('Start Ozone');
         }
+    }
+
+    function toLocaleTime(date) {
+        const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        const options = {
+            timeZone: userTimeZone, // Use the desired time zone, or leave it out for auto-detect
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+        };
+
+        return new Intl.DateTimeFormat('en-US', options).format(date);
     }
 });
