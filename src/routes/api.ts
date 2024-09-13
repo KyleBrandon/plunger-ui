@@ -1,6 +1,5 @@
 import express, { Request, Response } from 'express';
 import axios, { AxiosError, AxiosResponse } from 'axios';
-import moment from 'moment';
 var router = express.Router();
 
 class SensorDataClass {
@@ -133,12 +132,10 @@ router.get('/sensors', async function (req: Request, res: Response) {
         const ozoneStatus = await readOzoneStatus();
         if (ozoneStatus) {
             sensorData.ozoneStatus = ozoneStatus.status;
-            sensorData.ozoneStart = moment(ozoneStatus.start_time)
-                .local()
-                .format('h:mm:ssa');
-            sensorData.ozoneEnd = moment(ozoneStatus.end_time)
-                .local()
-                .format('h:mm:ssa');
+            sensorData.ozoneStart = toLocaleTime(
+                new Date(ozoneStatus.start_time),
+            );
+            sensorData.ozoneEnd = toLocaleTime(new Date(ozoneStatus.end_time));
             sensorData.ozoneTimeLeft = formatSecondsToHHMMSS(
                 ozoneStatus.seconds_left,
             );
@@ -374,6 +371,18 @@ function formatSecondsToHHMMSS(totalSeconds: number) {
 
 function sleep(ms: number) {
     return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function toLocaleTime(date: Date): string {
+    const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const options: Intl.DateTimeFormatOptions = {
+        timeZone: userTimeZone, // Use the desired time zone, or leave it out for auto-detect
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+    };
+
+    return new Intl.DateTimeFormat('en-US', options).format(date);
 }
 
 export default router;
