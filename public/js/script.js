@@ -1,64 +1,110 @@
 $(document).ready(function () {
-    //initialize the UI
-    updateCellData();
+    let socket = new WebSocket('ws://10.0.10.240:8080/v2/status/ws');
+    socket.onmessage = (event) => {
+        let data = JSON.parse(event.data);
 
-    // Refresh UI every 5 seconds
-    setInterval(updateCellData, 5000);
+        updateCellData(data);
+    };
 
-    function updateCellData() {
-        // TODO: break this up to read individual components, perhaps use websockets to get notificaiton of changes
-        $.ajax({
-            url: '/api/sensors',
-            method: 'GET',
-            success: function (sensorData) {
-                let waterMessage = sensorData.waterMessage;
-                // update the current water temperature
-                if (waterMessage == '') {
-                    waterMessage = `${sensorData.waterTemperature.toFixed(1)} °F`;
-                }
+    function updateCellData(sensorData) {
+        updateTemperatureStatus(sensorData);
 
-                $(`.cell-data[data-id='current-water-temp'] span`).text(
-                    waterMessage,
+        updatePlungerStatus(sensorData);
+
+        updateOzoneStatus(sensorData);
+
+        updatePumpStatus(sensorData);
+
+        updateLeakStatus(sensorData);
+    }
+
+    function updatePlungerStatus(data) {
+        try {
+            ps = data.plunge;
+
+            updatePlungeButton(ps.running);
+
+            if (data.water_temp) {
+                $(`.cell-data[data-id='plunge-current-temperature'] span`).text(
+                    data.water_temp.toFixed(1),
                 );
-
-                // update the current room temperature
-                let roomMessage = sensorData.roomMessage;
-                if (roomMessage == '') {
-                    roomMessage = `${sensorData.roomTemperature.toFixed(1)} °F`;
-                }
-                $(`.cell-data[data-id='current-room-temp'] span`).text(
-                    roomMessage,
+            }
+            if (ps.average_water_temp) {
+                $(`.cell-data[data-id='plunge-avg-temperature'] span`).text(
+                    ps.average_water_temp.toFixed(1),
                 );
-
-                // update leak indication
-                let leakMessage = sensorData.leakMessage;
-                if (leakMessage == '') {
-                    leakMessage = sensorData.leakPresent ? 'True' : 'False';
-                }
-                $(`.cell-data[data-id='leak-present'] span`).text(leakMessage);
-
-                // update the ozone message
-                updateOzoneStatus(sensorData);
-
-                $(`.cell-data[data-id='pump-status'] span`).text(
-                    sensorData.pumpStatus,
+            }
+            if (ps.expected_duration) {
+                $(`.cell-data[data-id='plunge-duration'] span`).text(
+                    secondsToHMS(ps.expected_duration),
                 );
-            },
-            error: function (xhr, status, error) {
-                console.error('Error:', status, error);
-            },
-        });
+            }
+            if (ps.remaining_time) {
+                $(`.cell-data[data-id='plunge-remaining-time'] span`).text(
+                    secondsToHMS(ps.remaining_time),
+                );
+            }
+            if (ps.elapsed_time) {
+                $(`.cell-data[data-id='plunge-elapsed-time'] span`).text(
+                    secondsToHMS(ps.elapsed_time),
+                );
+            }
+        } catch (e) {
+            console.error('Error parsing Plunge server status', e);
+        }
+    }
 
-        $.ajax({
-            url: '/api/plunge',
-            method: 'GET',
-            success: function (data) {
-                updatePlungeStatus(data);
-            },
-            error: function (xhr, status, error) {
-                console.error('Error:', status, error);
-            },
-        });
+    function updateTemperatureStatus(sensorData) {
+        let waterMessage = sensorData.water_temp_error;
+        if (!waterMessage) {
+            waterMessage = `${sensorData.water_temp.toFixed(1)} °F`;
+        }
+        $(`.cell-data[data-id='current-water-temp'] span`).text(waterMessage);
+
+        // update the current room temperature
+        let roomMessage = sensorData.room_temp_error;
+        if (!roomMessage) {
+            roomMessage = `${sensorData.room_temp.toFixed(1)} °F`;
+        }
+        $(`.cell-data[data-id='current-room-temp'] span`).text(roomMessage);
+    }
+
+    function updateOzoneStatus(sensorData) {
+        let ozoneStatus = sensorData.ozone;
+
+        $(`.cell-data[data-id='ozone-status'] span`).text(ozoneStatus.status);
+        $(`.cell-data[data-id='ozone-start'] span`).text(
+            toLocaleTime(new Date(ozoneStatus.start_time)),
+        );
+        $(`.cell-data[data-id='ozone-end'] span`).text(
+            toLocaleTime(new Date(ozoneStatus.end_time)),
+        );
+        $(`.cell-data[data-id='ozone-time-left'] span`).text(
+            secondsToHMS(ozoneStatus.seconds_left),
+        );
+
+        if (ozoneStatus.status == 'Running') {
+            $(`#ozone-power`).text('Stop Ozone');
+        } else {
+            $(`#ozone-power`).text('Start Ozone');
+        }
+    }
+
+    function updatePumpStatus(sensorData) {
+        let pumpMessage = sensorData.pump_error;
+        if (!pumpMessage) {
+            pumpMessage = sensorData.pump_on;
+        }
+        $(`.cell-data[data-id='pump-status'] span`).text(pumpMessage);
+    }
+
+    function updateLeakStatus(sensorData) {
+        // update leak indication
+        let leakMessage = sensorData.leak_error;
+        if (!leakMessage) {
+            leakMessage = sensorData.leak_detected ? 'True' : 'False';
+        }
+        $(`.cell-data[data-id='leak-present'] span`).text(leakMessage);
     }
 
     $('#ozone-power').click(function () {
@@ -73,7 +119,7 @@ $(document).ready(function () {
     });
 
     $('#pump-power').click(function () {
-        debounceButton('#plunge-timer');
+        debounceButton('#pump-power');
 
         // TODO: read the current pump status instead of relying on the UI
         let pumpStatus = $(`.cell-data[data-id='pump-status'] span`).text();
@@ -89,9 +135,7 @@ $(document).ready(function () {
             $.ajax({
                 url: '/api/pump',
                 method: 'POST',
-                success: function (data) {
-                    updatePumpStatus();
-                },
+                success: function (data) {},
                 error: function (xhr, status, error) {
                     console.error(`Error: ${status} ${error}`);
                 },
@@ -101,11 +145,12 @@ $(document).ready(function () {
 
     $('#plunge-timer').click(function () {
         debounceButton('#plunge-timer');
+
         $.ajax({
             url: '/api/plunge',
             method: 'POST',
             success: function (data) {
-                updatePlungeStatus(data);
+                updatePlungeButton(data.running);
             },
             error: function (xhr, status, error) {
                 console.error(`Error: ${status} ${error}`);
@@ -120,53 +165,31 @@ $(document).ready(function () {
         }, 500);
     }
 
-    function updatePumpStatus(data) {
-        $(`.cell-data[data-id='pump-status'] span`).text(sensorData.pumpStatus);
-    }
-
-    function updatePlungeStatus(data) {
-        if (data.running == true) {
+    function updatePlungeButton(running) {
+        if (running == true) {
             $('#plunge-timer').text('Stop Timer');
+            $(`.cell-data[data-id='plunge-message'] span`).text(
+                'Timer running',
+            );
         } else {
             $('#plunge-timer').text('Start Timer');
-        }
-        $(`.cell-data[data-id='plunge-message'] span`).text(data.message);
-        if (data.start_water_temp) {
-            $(`.cell-data[data-id='plunge-start-temperature'] span`).text(
-                data.start_water_temp,
-            );
-        }
-        if (data.end_water_temp) {
-            $(`.cell-data[data-id='plunge-end-temperature'] span`).text(
-                data.end_water_temp,
-            );
-        }
-        if (data.plunge_time) {
-            $(`.cell-data[data-id='plunge-elapsed-time'] span`).text(
-                data.plunge_time,
+            $(`.cell-data[data-id='plunge-message'] span`).text(
+                'Timer stopped',
             );
         }
     }
 
-    function updateOzoneStatus(sensorData) {
-        $(`.cell-data[data-id='ozone-status'] span`).text(
-            sensorData.ozoneStatus,
+    function secondsToHMS(seconds) {
+        let hours = Math.floor(seconds / 3600);
+        let minutes = Math.floor((seconds % 3600) / 60);
+        let secs = Math.floor(seconds % 60);
+        return (
+            hours.toString().padStart(2, '0') +
+            ':' +
+            minutes.toString().padStart(2, '0') +
+            ':' +
+            secs.toString().padStart(2, '0')
         );
-        $(`.cell-data[data-id='ozone-start'] span`).text(
-            toLocaleTime(new Date(sensorData.ozoneStart)),
-        );
-        $(`.cell-data[data-id='ozone-end'] span`).text(
-            toLocaleTime(new Date(sensorData.ozoneEnd)),
-        );
-        $(`.cell-data[data-id='ozone-time-left'] span`).text(
-            sensorData.ozoneTimeLeft,
-        );
-
-        if (sensorData.ozoneStatus == 'Running') {
-            $(`#ozone-power`).text('Stop Ozone');
-        } else {
-            $(`#ozone-power`).text('Start Ozone');
-        }
     }
 
     function toLocaleTime(date) {
