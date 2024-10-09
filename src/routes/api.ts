@@ -98,17 +98,15 @@ interface PumpStatus {
 }
 
 interface PlungeResponse {
-    message: string;
-    plunge_time: string;
     id?: string;
-    start_time?: Date;
-    end_time?: Date;
-    elapsed_time?: number;
     running?: boolean;
-    start_room_temp?: string;
-    end_room_temp?: string;
-    end_water_temp?: string;
-    start_water_temp?: string;
+    expected_duration?: number;
+    remaining_time?: number;
+    elapsed_time?: number;
+    room_temp?: string;
+    water_temp?: string;
+    average_water_temp?: string;
+    average_room_temp?: string;
 }
 
 router.get('/sensors', async function (req: Request, res: Response) {
@@ -195,32 +193,28 @@ router.post('/pump', async function (req: Request, res: Response) {
 });
 
 router.get('/plunge', async function (req: Request, res: Response) {
-    let plungeStatus = await readPlungeStatus();
-    res.json(plungeStatus);
+    let status = await readPlungeStatus();
+    res.json(status);
 });
 
 router.post('/plunge', async function (req: Request, res: Response) {
-    let plungeStatus: PlungeResponse = {
-        message: 'unable to get plunge status',
-        plunge_time: '',
-    };
+    let plungeStatus: PlungeResponse = {};
     try {
         plungeStatus = await readPlungeStatus();
-        console.log(plungeStatus);
         let response: AxiosResponse;
         if (plungeStatus.running) {
             response = await axios.put(
-                `http://10.0.10.240:8080/v1/plunges/${plungeStatus.id}`,
+                `http://10.0.10.240:8080/v2/plunges/stop`,
             );
         } else {
-            response = await axios.post('http://10.0.10.240:8080/v1/plunges');
+            response = await axios.post(
+                'http://10.0.10.240:8080/v2/plunges/start',
+            );
         }
 
         plungeStatus = response.data as PlungeResponse;
     } catch (error) {
         if (axios.isAxiosError(error)) {
-            plungeStatus.message = error.response?.data;
-
             handleRequestError(error);
         } else {
             console.error('unexpected error:', error);
@@ -230,30 +224,14 @@ router.post('/plunge', async function (req: Request, res: Response) {
 });
 
 async function readPlungeStatus() {
-    let plungeResponse: PlungeResponse = {
-        message: 'unable to get plunge status',
-        plunge_time: '',
-    };
+    let plungeResponse: PlungeResponse = {};
     try {
         const response = await axios.get(
-            'http://10.0.10.240:8080/v1/plunges?filter=current',
+            'http://10.0.10.240:8080/v2/plunges/status',
         );
-        plungeResponse = (response.data as PlungeResponse[])[0];
-        if (plungeResponse.running) {
-            plungeResponse.message = 'Started';
-        } else {
-            plungeResponse.message = 'Stopped';
-        }
-
-        if (plungeResponse.elapsed_time) {
-            plungeResponse.plunge_time = formatSecondsToHHMMSS(
-                plungeResponse.elapsed_time,
-            );
-        }
+        plungeResponse = response.data as PlungeResponse;
     } catch (error) {
         if (axios.isAxiosError(error)) {
-            plungeResponse.message = error.response?.data.error;
-
             handleRequestError(error);
         } else {
             console.error('unexpected error:', error);
