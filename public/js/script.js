@@ -93,7 +93,7 @@ $(document).ready(function () {
     function updatePumpStatus(sensorData) {
         let pumpMessage = sensorData.pump_error;
         if (!pumpMessage) {
-            pumpMessage = sensorData.pump_on;
+            pumpMessage = sensorData.pump_on ? 'On' : 'Off';
         }
         $(`.cell-data[data-id='pump-status'] span`).text(pumpMessage);
     }
@@ -166,7 +166,7 @@ $(document).ready(function () {
     }
 
     function updatePlungeButton(running) {
-        if (running == true) {
+        if (running) {
             $('#plunge-timer').text('Stop Timer');
             $(`.cell-data[data-id='plunge-message'] span`).text(
                 'Timer running',
