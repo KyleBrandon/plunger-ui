@@ -84,9 +84,7 @@ $(document).ready(function () {
         $(`.cell-data[data-id='ozone-time-left'] span`).text(
             secondsToHMS(ozoneStatus.seconds_left),
         );
-        $(`.cell-data[data-id='ozone-message'] span`).text(
-            ozoneStatus.status_message,
-        );
+        $(`.cell-data[data-id='ozone-message'] span`).text(ozoneStatus.status);
 
         if (ozoneStatus.running) {
             $(`#ozone-power`).text('Stop Ozone');
