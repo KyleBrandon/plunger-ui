@@ -2,75 +2,6 @@ import express, { Request, Response } from 'express';
 import axios, { AxiosError, AxiosResponse } from 'axios';
 var router = express.Router();
 
-class SensorDataClass {
-    _waterTemperature: number = 0;
-    _waterMessage: string = 'Water temperature could not be read';
-    _roomTemperature: number = 0;
-    _roomMessage: string = 'Room temperature could not be read';
-    _leakPresent: boolean = false;
-    _leakMessage: string = 'Leak sensor could not be read';
-    ozoneStatus: string = 'Ozone status could not be read';
-    ozoneStart: string = '';
-    ozoneEnd: string = '';
-    ozoneTimeLeft: string = '';
-    pumpStatus: string = 'Pump status could not be read';
-
-    get waterTemperature() {
-        return this._waterTemperature;
-    }
-
-    set waterTemperature(value: number) {
-        this._waterTemperature = value;
-        this._waterMessage = '';
-    }
-
-    get waterMessage() {
-        return this._waterMessage;
-    }
-
-    get roomTemperature() {
-        return this._roomTemperature;
-    }
-
-    set roomTemperature(value: number) {
-        this._roomTemperature = value;
-        this._roomMessage = '';
-    }
-
-    get roomMessage() {
-        return this._roomMessage;
-    }
-
-    get leakPresent() {
-        return this._leakPresent;
-    }
-
-    set leakPresent(value: boolean) {
-        this._leakPresent = value;
-        this._leakMessage = '';
-    }
-
-    get leakMessage() {
-        return this._leakMessage;
-    }
-
-    toJSON() {
-        return {
-            waterTemperature: this.waterTemperature,
-            waterMessage: this.waterMessage,
-            roomTemperature: this.roomTemperature,
-            roomMessage: this.roomMessage,
-            leakPresent: this.leakPresent,
-            leakMessage: this.leakMessage,
-            ozoneStatus: this.ozoneStatus,
-            ozoneStart: this.ozoneStart,
-            ozoneEnd: this.ozoneEnd,
-            ozoneTimeLeft: this.ozoneTimeLeft,
-            pumpStatus: this.pumpStatus,
-        };
-    }
-}
-
 interface TemperatureReading {
     name: string;
     description: string;
@@ -85,12 +16,11 @@ interface LeakReading {
 }
 
 interface OzoneStatus {
-    status: string;
+    running: boolean;
     start_time: Date;
     end_time: Date;
-    result: string;
+    status: string;
     seconds_left: number;
-    cancel_requested: boolean;
 }
 
 interface PumpStatus {
@@ -109,53 +39,11 @@ interface PlungeResponse {
     average_room_temp?: string;
 }
 
-router.get('/sensors', async function (req: Request, res: Response) {
-    const sensorData = new SensorDataClass();
-    try {
-        const temperatures = await readTemperatures();
-
-        temperatures.forEach((temp: TemperatureReading) => {
-            if (temp.name == 'Room') {
-                sensorData.roomTemperature = temp.temperature_f;
-            } else if (temp.name == 'Water') {
-                sensorData.waterTemperature = temp.temperature_f;
-            }
-        });
-
-        const leaks = await readLatestLeak();
-        if (leaks.length == 1) {
-            sensorData.leakPresent = leaks[0].leak_detected;
-        }
-
-        const ozoneStatus = await readOzoneStatus();
-        if (ozoneStatus) {
-            sensorData.ozoneStatus = ozoneStatus.status;
-            sensorData.ozoneStart = ozoneStatus.start_time.toString();
-            sensorData.ozoneEnd = ozoneStatus.end_time.toString();
-            sensorData.ozoneTimeLeft = formatSecondsToHHMMSS(
-                ozoneStatus.seconds_left,
-            );
-        }
-
-        // TODO: I don't like this, push the text parts up to the UI and out of the API
-        const pumpStatus = await readPumpStatus();
-        if (pumpStatus) {
-            sensorData.pumpStatus = pumpStatus.pump_on ? 'Running' : 'Stopped';
-        } else {
-            sensorData.pumpStatus = 'Pump status could not be read';
-        }
-    } catch (error) {
-        console.error('Error fetching user data:', error);
-    }
-
-    res.json(sensorData.toJSON());
-});
-
 router.post('/ozone', async function (req: Request, res: Response) {
     try {
         let ozoneStatus = await readOzoneStatus();
 
-        if (ozoneStatus && ozoneStatus.status == 'Running') {
+        if (ozoneStatus && ozoneStatus.running) {
             await axios.post('http://10.0.10.240:8080/v1/ozone/stop');
         } else {
             await axios.post('http://10.0.10.240:8080/v1/ozone/start');
@@ -241,42 +129,6 @@ async function readPlungeStatus() {
     return plungeResponse;
 }
 
-async function readTemperatures() {
-    let temperatures: TemperatureReading[] = [];
-    try {
-        const tempResponse = await axios.get(
-            `http://10.0.10.240:8080/v1/temperatures`,
-        );
-
-        temperatures = tempResponse.data as TemperatureReading[];
-    } catch (error) {
-        if (axios.isAxiosError(error)) {
-            handleRequestError(error);
-        } else {
-            console.error('unexpected error:', error);
-        }
-    }
-    return temperatures;
-}
-
-async function readLatestLeak() {
-    let leakReadings: LeakReading[] = [];
-    try {
-        const leakResponse = await axios.get(
-            `http://10.0.10.240:8080/v1/leaks?filter=current`,
-        );
-
-        leakReadings = leakResponse.data as LeakReading[];
-    } catch (error) {
-        if (axios.isAxiosError(error)) {
-            handleRequestError(error);
-        } else {
-            console.error('unexpected error:', error);
-        }
-    }
-    return leakReadings;
-}
-
 async function readOzoneStatus() {
     try {
         const response = await axios.get(`http://10.0.10.240:8080/v1/ozone`);
@@ -328,25 +180,6 @@ function handleRequestError(error: AxiosError) {
         // Something happened in setting up the request that triggered an Error
         console.error('Error Message:', error.message);
     }
-}
-
-function formatSecondsToHHMMSS(totalSeconds: number) {
-    // Calculate hours, minutes, and seconds
-    const hours = Math.floor(totalSeconds / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-    const seconds = (totalSeconds % 60).toFixed(0);
-
-    // Format the values to two digits
-    const formattedHours = String(hours).padStart(2, '0');
-    const formattedMinutes = String(minutes).padStart(2, '0');
-    const formattedSeconds = String(seconds).padStart(2, '0');
-
-    // Combine into HH:MM:SS format
-    return `${formattedHours}:${formattedMinutes}:${formattedSeconds}`;
-}
-
-function sleep(ms: number) {
-    return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 export default router;

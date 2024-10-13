@@ -72,7 +72,9 @@ $(document).ready(function () {
     function updateOzoneStatus(sensorData) {
         let ozoneStatus = sensorData.ozone;
 
-        $(`.cell-data[data-id='ozone-status'] span`).text(ozoneStatus.status);
+        $(`.cell-data[data-id='ozone-status'] span`).text(
+            ozoneStatus.running ? 'On' : 'Off',
+        );
         $(`.cell-data[data-id='ozone-start'] span`).text(
             toLocaleTime(new Date(ozoneStatus.start_time)),
         );
@@ -82,8 +84,11 @@ $(document).ready(function () {
         $(`.cell-data[data-id='ozone-time-left'] span`).text(
             secondsToHMS(ozoneStatus.seconds_left),
         );
+        $(`.cell-data[data-id='ozone-message'] span`).text(
+            ozoneStatus.status_message,
+        );
 
-        if (ozoneStatus.status == 'Running') {
+        if (ozoneStatus.running) {
             $(`#ozone-power`).text('Stop Ozone');
         } else {
             $(`#ozone-power`).text('Start Ozone');
@@ -111,7 +116,10 @@ $(document).ready(function () {
         $.ajax({
             url: '/api/ozone',
             method: 'POST',
-            success: function (data) {},
+            success: function (data) {
+                console.log('success');
+                console.log(data);
+            },
             error: function (xhr, status, error) {
                 console.error(`Error: ${status} ${error}`);
             },
