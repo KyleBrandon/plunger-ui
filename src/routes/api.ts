@@ -2,19 +2,6 @@ import express, { Request, Response } from 'express';
 import axios, { AxiosError, AxiosResponse } from 'axios';
 var router = express.Router();
 
-interface TemperatureReading {
-    name: string;
-    description: string;
-    address: string;
-    temperature_c: number;
-    temperature_f: number;
-}
-
-interface LeakReading {
-    updated_at: Date;
-    leak_detected: boolean;
-}
-
 interface OzoneStatus {
     running: boolean;
     start_time: Date;
@@ -56,6 +43,22 @@ router.post('/ozone', async function (req: Request, res: Response) {
         }
     }
 });
+
+async function readOzoneStatus() {
+    try {
+        const response = await axios.get(`http://10.0.10.240:8080/v1/ozone`);
+
+        const ozoneResult: OzoneStatus = response.data;
+        return ozoneResult;
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            handleRequestError(error);
+        } else {
+            console.error('unexpected error:', error);
+        }
+    }
+    return null;
+}
 
 router.get('/pump', async function (req: Request, res: Response) {
     let pumpStatus = await readPumpStatus();
@@ -127,22 +130,6 @@ async function readPlungeStatus() {
     }
 
     return plungeResponse;
-}
-
-async function readOzoneStatus() {
-    try {
-        const response = await axios.get(`http://10.0.10.240:8080/v1/ozone`);
-
-        const ozoneResult: OzoneStatus = response.data;
-        return ozoneResult;
-    } catch (error) {
-        if (axios.isAxiosError(error)) {
-            handleRequestError(error);
-        } else {
-            console.error('unexpected error:', error);
-        }
-    }
-    return null;
 }
 
 async function readPumpStatus() {
