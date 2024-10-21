@@ -8,13 +8,9 @@ $(document).ready(function () {
 
     function updateCellData(sensorData) {
         updateTemperatureStatus(sensorData);
-
         updatePlungerStatus(sensorData);
-
         updateOzoneStatus(sensorData);
-
         updatePumpStatus(sensorData);
-
         updateLeakStatus(sensorData);
     }
 
@@ -98,7 +94,14 @@ $(document).ready(function () {
         if (!pumpMessage) {
             pumpMessage = sensorData.pump_on ? 'On' : 'Off';
         }
+
         $(`.cell-data[data-id='pump-status'] span`).text(pumpMessage);
+
+        if (sensorData.pump_on) {
+            $('#pump-power').text('Stop Pump');
+        } else {
+            $('#pump-power').text('Start Pump');
+        }
     }
 
     function updateLeakStatus(sensorData) {
@@ -114,10 +117,7 @@ $(document).ready(function () {
         $.ajax({
             url: '/api/ozone',
             method: 'POST',
-            success: function (data) {
-                console.log('success');
-                console.log(data);
-            },
+            success: function (data) {},
             error: function (xhr, status, error) {
                 console.error(`Error: ${status} ${error}`);
             },
@@ -131,7 +131,7 @@ $(document).ready(function () {
         let pumpStatus = $(`.cell-data[data-id='pump-status'] span`).text();
         message = 'Are you certain you wish to turn the pump off?';
 
-        if (pumpStatus != 'Running') {
+        if (pumpStatus != 'On') {
             message = 'Are you certain you wish to turn the pump on?';
         }
 
