@@ -6,6 +6,11 @@ $(document).ready(function () {
         updateCellData(data);
     };
 
+    flatpickr('#filter-change-date', {
+        enableTime: true,
+        dateFormat: 'F, d Y H:i',
+    });
+
     function updateCellData(sensorData) {
         updateTemperatureStatus(sensorData);
         updatePlungerStatus(sensorData);
@@ -112,6 +117,24 @@ $(document).ready(function () {
         }
         $(`.cell-data[data-id='leak-present'] span`).text(leakMessage);
     }
+
+    $('#filter-change-form').on('submit', async function (e) {
+        e.preventDefault();
+
+        const date = $('#filter-change-date').val();
+        $.ajax({
+            url: '/api/change-filter',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ date: date }),
+            success: function (data) {
+                console.log('filter changed');
+            },
+            error: function (xhr, status, error) {
+                console.error(`Error: ${status} ${error}`);
+            },
+        });
+    });
 
     $('#ozone-power').click(function () {
         $.ajax({

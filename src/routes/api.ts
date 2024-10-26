@@ -26,6 +26,28 @@ interface PlungeResponse {
     average_room_temp?: string;
 }
 
+router.post('/change-filter', async function (req: Request, res: Response) {
+    const { date } = req.body;
+    const filterDate = new Date(date);
+    let d = new Date(date);
+    const remindDate = new Date(d.setDate(d.getDate() + 14));
+
+    const data = {
+        changed_at: filterDate,
+        remind_at: remindDate,
+    };
+    console.log(data);
+    try {
+        await axios.post('http://10.0.10.240:8080/v2/filters/change', data);
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            handleRequestError(error);
+        } else {
+            console.error('unexpected error:', error);
+        }
+    }
+});
+
 router.post('/ozone', async function (req: Request, res: Response) {
     try {
         let ozoneStatus = await readOzoneStatus();
