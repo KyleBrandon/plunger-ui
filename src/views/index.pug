@@ -16,12 +16,14 @@ block content
                 .cell
                     p.cell-title Filter
                     .cell-display
-                        p.cell-data( data-id="last-filter-data" ) Last Change Date: <span/>
-                        div.flatpickr-container
-                            form#filter-change-form(action="/api/change-filter", method="POST")
-                                label(for="date") Pick a Date:
-                                input#filter-change-date(type="text", name="date" data-input placeholder='Select a date')
-                                button(type="submit") Submit
+                        p.cell-data( data-id="last-filter-changed-at" ) Last Changed On: <span/>
+                        p.cell-data( data-id="next-filter-change-on" ) Next Change On: <span/>
+                        p.cell-data( data-id="date-picker" )
+                            div.flatpickr-container.cell-data  
+                                form#filter-change-form(action="/api/change-filter", method="POST")
+                                    label(for="date") Pick a Date:
+                                    input#filter-change-date(type="text", name="date" data-input placeholder='Select a date')
+                                    button(type="submit") Submit
 
         .row
             .column
@@ -64,7 +66,3 @@ block content
 
     script(src="/js/script.js")
     script(src="https://cdn.jsdelivr.net/npm/flatpickr")
-    script.flatpickr("#filter-change-date", {
-        enableTime: true,
-        dateFormat: "F, d Y H:i",
-    })

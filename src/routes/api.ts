@@ -2,14 +2,6 @@ import express, { Request, Response } from 'express';
 import axios, { AxiosError, AxiosResponse } from 'axios';
 var router = express.Router();
 
-interface OzoneStatus {
-    running: boolean;
-    start_time: Date;
-    end_time: Date;
-    status: string;
-    seconds_left: number;
-}
-
 interface PumpStatus {
     pump_on: boolean;
 }
@@ -47,40 +39,6 @@ router.post('/change-filter', async function (req: Request, res: Response) {
         }
     }
 });
-
-router.post('/ozone', async function (req: Request, res: Response) {
-    try {
-        let ozoneStatus = await readOzoneStatus();
-
-        if (ozoneStatus && ozoneStatus.running) {
-            await axios.post('http://10.0.10.240:8080/v1/ozone/stop');
-        } else {
-            await axios.post('http://10.0.10.240:8080/v1/ozone/start');
-        }
-    } catch (error) {
-        if (axios.isAxiosError(error)) {
-            handleRequestError(error);
-        } else {
-            console.error('unexpected error:', error);
-        }
-    }
-});
-
-async function readOzoneStatus() {
-    try {
-        const response = await axios.get(`http://10.0.10.240:8080/v1/ozone`);
-
-        const ozoneResult: OzoneStatus = response.data;
-        return ozoneResult;
-    } catch (error) {
-        if (axios.isAxiosError(error)) {
-            handleRequestError(error);
-        } else {
-            console.error('unexpected error:', error);
-        }
-    }
-    return null;
-}
 
 router.get('/pump', async function (req: Request, res: Response) {
     let pumpStatus = await readPumpStatus();
