@@ -6,12 +6,19 @@ $(document).ready(function () {
         updateCellData(data);
     };
 
+    flatpickr('#filter-change-date', {
+        enableTime: true,
+        dateFormat: 'F, d Y H:i',
+        defaultDate: new Date(),
+    });
+
     function updateCellData(sensorData) {
         updateTemperatureStatus(sensorData);
         updatePlungerStatus(sensorData);
         updateOzoneStatus(sensorData);
         updatePumpStatus(sensorData);
         updateLeakStatus(sensorData);
+        updateFilterStatus(sensorData);
     }
 
     function updatePlungerStatus(data) {
@@ -106,12 +113,46 @@ $(document).ready(function () {
 
     function updateLeakStatus(sensorData) {
         // update leak indication
-        let leakMessage = sensorData.leak_error;
+        let leakMessage = sensorData.leak_status_error;
         if (!leakMessage) {
             leakMessage = sensorData.leak_detected ? 'True' : 'False';
         }
         $(`.cell-data[data-id='leak-present'] span`).text(leakMessage);
     }
+
+    function updateFilterStatus(sensorData) {
+        let filterMessage = sensorData.filter_status_error;
+        if (!filterMessage) {
+            filterMessage = toLocaleTime(sensorData.filter.changed_at);
+        }
+
+        // TODO: do something with 'filter.change_due'
+
+        $(`.cell-data[data-id='last-filter-changed-at'] span`).text(
+            toLocaleDateTime(sensorData.filter.changed_at),
+        );
+        $(`.cell-data[data-id='next-filter-change-on'] span`).text(
+            toLocaleDateTime(sensorData.filter.remind_at),
+        );
+    }
+
+    $('#filter-change-form').on('submit', async function (e) {
+        e.preventDefault();
+
+        const date = $('#filter-change-date').val();
+        $.ajax({
+            url: '/api/change-filter',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ date: date }),
+            success: function (data) {
+                console.log('filter changed');
+            },
+            error: function (xhr, status, error) {
+                console.error(`Error: ${status} ${error}`);
+            },
+        });
+    });
 
     $('#ozone-power').click(function () {
         $.ajax({
@@ -198,7 +239,30 @@ $(document).ready(function () {
         );
     }
 
+    function toLocaleDateTime(date) {
+        if (typeof date === 'string') {
+            date = new Date(date);
+        }
+
+        const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        const options = {
+            timeZone: userTimeZone, // Use the desired time zone, or leave it out for auto-detect
+            year: 'numeric',
+            month: 'long',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+        };
+
+        return new Intl.DateTimeFormat('en-US', options).format(date);
+    }
+
     function toLocaleTime(date) {
+        if (typeof date === 'string') {
+            date = new Date(date);
+        }
+
         const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
         const options = {
             timeZone: userTimeZone, // Use the desired time zone, or leave it out for auto-detect

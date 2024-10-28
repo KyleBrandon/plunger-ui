@@ -7,6 +7,27 @@ block content
         .row
             .column
                 .cell
+                    p.cell-title Temperature
+                    .cell-display
+                        p.cell-data( data-id="current-water-temp" ) Current Water: <span/>
+                        p.cell-data( data-id="current-room-temp" ) Current Room: <span/>
+
+            .column
+                .cell
+                    p.cell-title Filter
+                    .cell-display
+                        p.cell-data( data-id="last-filter-changed-at" ) Last Changed On: <span/>
+                        p.cell-data( data-id="next-filter-change-on" ) Next Change On: <span/>
+                        p.cell-data( data-id="date-picker" )
+                            div.flatpickr-container.cell-data  
+                                form#filter-change-form(action="/api/change-filter", method="POST")
+                                    label(for="date") Pick a Date:
+                                    input#filter-change-date(type="text", name="date" data-input placeholder='Select a date')
+                                    button(type="submit") Submit
+
+        .row
+            .column
+                .cell
                     p.cell-title Plunge
                     .cell-display
                         p.cell-data( data-id="plunge-message" ) Status: <span/>
@@ -19,13 +40,6 @@ block content
                             button.button#plunge-timer(type='button') Start Timer
             .column
                 .cell
-                    p.cell-title Temperature
-                    .cell-display
-                        p.cell-data( data-id="current-water-temp" ) Current Water: <span/>
-                        p.cell-data( data-id="current-room-temp" ) Current Room: <span/>
-        .row
-            .column
-                .cell
                 p.cell-title Ozone Status
                     .cell-display
                         p.cell-data( data-id="ozone-status" ) Ozone: <span/>
@@ -36,6 +50,7 @@ block content
 
                         .buttons
                             button.button#ozone-power(type='button') Start Ozone
+        .row
             .column
                 .cell
                     p.cell-title Leak Present
@@ -50,3 +65,4 @@ block content
                             button.button#pump-power(type='button') Stop Pump
 
     script(src="/js/script.js")
+    script(src="https://cdn.jsdelivr.net/npm/flatpickr")
