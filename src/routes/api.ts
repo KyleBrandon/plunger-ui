@@ -18,6 +18,48 @@ interface PlungeResponse {
     average_room_temp?: string;
 }
 
+interface OzoneStatus {
+    start_time: Date;
+    end_time: Date;
+    running: boolean;
+    status_message: string;
+    expected_duration: number;
+}
+
+router.post('/ozone', async function (req: Request, res: Response) {
+    try {
+        let ozoneStatus = await readOzoneStatus();
+
+        if (ozoneStatus && ozoneStatus.running) {
+            await axios.post('http://10.0.10.240:8080/v1/ozone/stop');
+        } else {
+            await axios.post('http://10.0.10.240:8080/v1/ozone/start');
+        }
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            handleRequestError(error);
+        } else {
+            console.error('unexpected error:', error);
+        }
+    }
+});
+
+async function readOzoneStatus() {
+    try {
+        const response = await axios.get(`http://10.0.10.240:8080/v1/ozone`);
+
+        const ozoneResult: OzoneStatus = response.data;
+        return ozoneResult;
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            handleRequestError(error);
+        } else {
+            console.error('unexpected error:', error);
+        }
+    }
+    return null;
+}
+
 router.post('/change-filter', async function (req: Request, res: Response) {
     const { date } = req.body;
     const filterDate = new Date(date);
