@@ -27,8 +27,9 @@ jobs:
               run: |
                   docker build \
                     --platform linux/arm/v7 \
-                    --build-arg PLUNGER_SERVER=${{ secrets.PLUNGER_SERVER }} \
-                    --build-arg PORT=${{ vars.PORT }} \
+                    --build-arg PLUNGE_SERVER_IP=${{ secrets.PLUNGE_SERVER_IP }} \
+                    --build-arg PLUNGE_SERVER_PORT=${{ secrets.PLUNGE_SERVER_PORT }} \
+                    --build-arg PLUNGE_UI_PORT=${{ secrets.PLUNGE_UI_PORT }} \
                     -t kylebrandon/plunger-ui:latest .
 
     deploy:
@@ -47,7 +48,8 @@ jobs:
                   docker run -d \
                     --name plunger-ui -it \
                     --restart unless-stopped \
-                    -e PLUNGER_SERVER=${{ secrets.PLUNGER_SERVER }} \
-                    -e PORT=${{ vars.PORT }} \
-                    -p ${{ vars.PORT }}:${{ vars.PORT }} \
+                    -e PLUNGE_SERVER_IP=${{ secrets.PLUNGE_SERVER_IP }} \
+                    -e PLUNGE_SERVER_PORT=${{ secrets.PLUNGE_SERVER_PORT }} \
+                    -e PLUNGE_UI_PORT=${{ secrets.PLUNGE_UI_PORT }} \
+                    -p ${{ secrets.PLUNGE_UI_PORT }}:${{ secrets.PLUNGE_UI_PORT }} \
                     kylebrandon/plunger-ui:latest

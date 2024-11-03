@@ -32,8 +32,11 @@ COPY --from=builder /app/package*.json ./
 RUN npm install
 
 # Expose the port for the web server
-EXPOSE ${PORT}
+EXPOSE ${PLUNGE_UI_PORT}
+
+ENV PLUNGE_UI_PORT=${PLUNGE_UI_PORT}
+ENV PLUNGE_SERVER_PORT=${PLUNGE_SERVER_PORT}
+ENV PLUNGE_SERVER_IP=${PLUNGE_SERVER_IP}
 
 # Start the app
-CMD ["node", "dist/index.js"]
-
+CMD node dist/index.js --port $PLUNGE_UI_PORT --plungeServerIP $PLUNGE_SERVER_IP --plungeServerPort $PLUNGE_SERVER_PORT
