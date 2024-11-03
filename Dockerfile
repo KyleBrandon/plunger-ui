@@ -35,5 +35,5 @@ RUN npm install
 EXPOSE ${PORT}
 
 # Start the app
-CMD ["node", "dist/index.js"]
+CMD ["node", "dist/index.js", "--port ${PORT}", "--plungeServerIP ${PLUNGE_SERVER_IP}", "--plungeServerPort ${PLUNGE_SERVER_PORT}"]
 

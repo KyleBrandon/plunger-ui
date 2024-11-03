@@ -1,5 +1,6 @@
 import express, { Request, Response } from 'express';
 import axios, { AxiosError, AxiosResponse } from 'axios';
+
 var router = express.Router();
 
 interface PumpStatus {
@@ -26,14 +27,20 @@ interface OzoneStatus {
     expected_duration: number;
 }
 
+function buildPlungeServerURL(req: Request, path: string): string {
+    const serverIP = req.app.locals.plungeServerIP as string;
+
+    return serverIP + path;
+}
+
 router.post('/ozone', async function (req: Request, res: Response) {
     try {
-        let ozoneStatus = await readOzoneStatus();
+        let ozoneStatus = await readOzoneStatus(req);
 
         if (ozoneStatus && ozoneStatus.running) {
-            await axios.post('http://10.0.10.240:8080/v1/ozone/stop');
+            await axios.post(buildPlungeServerURL(req, '/v1/ozone/stop'));
         } else {
-            await axios.post('http://10.0.10.240:8080/v1/ozone/start');
+            await axios.post(buildPlungeServerURL(req, '/v1/ozone/start'));
         }
     } catch (error) {
         if (axios.isAxiosError(error)) {
@@ -44,9 +51,11 @@ router.post('/ozone', async function (req: Request, res: Response) {
     }
 });
 
-async function readOzoneStatus() {
+async function readOzoneStatus(req: Request) {
     try {
-        const response = await axios.get(`http://10.0.10.240:8080/v1/ozone`);
+        const response = await axios.get(
+            buildPlungeServerURL(req, '/v1/ozone'),
+        );
 
         const ozoneResult: OzoneStatus = response.data;
         return ozoneResult;
@@ -72,7 +81,7 @@ router.post('/change-filter', async function (req: Request, res: Response) {
     };
     console.log(data);
     try {
-        await axios.post('http://10.0.10.240:8080/v2/filters/change', data);
+        await axios.post(buildPlungeServerURL(req, '/v2/filers/change'), data);
     } catch (error) {
         if (axios.isAxiosError(error)) {
             handleRequestError(error);
@@ -83,18 +92,18 @@ router.post('/change-filter', async function (req: Request, res: Response) {
 });
 
 router.get('/pump', async function (req: Request, res: Response) {
-    let pumpStatus = await readPumpStatus();
+    let pumpStatus = await readPumpStatus(req);
     res.json(pumpStatus);
 });
 
 router.post('/pump', async function (req: Request, res: Response) {
     try {
-        let pumpStatus = await readPumpStatus();
+        let pumpStatus = await readPumpStatus(req);
 
         if (pumpStatus && pumpStatus.pump_on) {
-            await axios.post('http://10.0.10.240:8080/v1/pump/stop');
+            await axios.post(buildPlungeServerURL(req, '/v1/pump/stop'));
         } else {
-            await axios.post('http://10.0.10.240:8080/v1/pump/start');
+            await axios.post(buildPlungeServerURL(req, '/v1/pump/start'));
         }
     } catch (error) {
         if (axios.isAxiosError(error)) {
@@ -106,22 +115,22 @@ router.post('/pump', async function (req: Request, res: Response) {
 });
 
 router.get('/plunge', async function (req: Request, res: Response) {
-    let status = await readPlungeStatus();
+    let status = await readPlungeStatus(req);
     res.json(status);
 });
 
 router.post('/plunge', async function (req: Request, res: Response) {
     let plungeStatus: PlungeResponse = {};
     try {
-        plungeStatus = await readPlungeStatus();
+        plungeStatus = await readPlungeStatus(req);
         let response: AxiosResponse;
         if (plungeStatus.running) {
             response = await axios.put(
-                `http://10.0.10.240:8080/v2/plunges/stop`,
+                buildPlungeServerURL(req, '/v2/plunges/stop'),
             );
         } else {
             response = await axios.post(
-                'http://10.0.10.240:8080/v2/plunges/start',
+                buildPlungeServerURL(req, '/v2/plunges/start'),
             );
         }
 
@@ -136,11 +145,11 @@ router.post('/plunge', async function (req: Request, res: Response) {
     res.json(plungeStatus);
 });
 
-async function readPlungeStatus() {
+async function readPlungeStatus(req: Request) {
     let plungeResponse: PlungeResponse = {};
     try {
         const response = await axios.get(
-            'http://10.0.10.240:8080/v2/plunges/status',
+            buildPlungeServerURL(req, '/v2/plunges/status'),
         );
         plungeResponse = response.data as PlungeResponse;
     } catch (error) {
@@ -154,9 +163,9 @@ async function readPlungeStatus() {
     return plungeResponse;
 }
 
-async function readPumpStatus() {
+async function readPumpStatus(req: Request) {
     try {
-        const response = await axios.get(`http://10.0.10.240:8080/v1/pump`);
+        const response = await axios.get(buildPlungeServerURL(req, '/v1/pump'));
 
         const pumpResult: PumpStatus = response.data;
         return pumpResult;

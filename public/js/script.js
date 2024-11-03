@@ -1,9 +1,18 @@
 $(document).ready(function () {
-    let socket = new WebSocket('ws://10.0.10.240:8080/v2/status/ws');
+    const socket = new WebSocket(`ws://${window.location.host}`);
+
+    socket.onopen = () => {
+        console.log('Connected to WebSocket server');
+    };
+
     socket.onmessage = (event) => {
         let data = JSON.parse(event.data);
 
         updateCellData(data);
+    };
+
+    socket.onclose = () => {
+        console.log('Disconnected from WebSocket server');
     };
 
     flatpickr('#filter-change-date', {
