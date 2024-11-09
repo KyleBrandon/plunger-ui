@@ -79,9 +79,8 @@ router.post('/change-filter', async function (req: Request, res: Response) {
         changed_at: filterDate,
         remind_at: remindDate,
     };
-    console.log(data);
     try {
-        await axios.post(buildPlungeServerURL(req, '/v2/filers/change'), data);
+        await axios.post(buildPlungeServerURL(req, '/v2/filters/change'), data);
     } catch (error) {
         if (axios.isAxiosError(error)) {
             handleRequestError(error);
