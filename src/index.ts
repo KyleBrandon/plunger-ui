@@ -61,7 +61,7 @@ function connectToPlungeServer() {
         let parsedMessage = JSON.parse(message.toString('utf-8'));
 
         wsServer.clients.forEach((client) => {
-            if (client.readyState === WebSocket.OPEN) {
+           if (client.readyState === WebSocket.OPEN) {
                 client.send(JSON.stringify(parsedMessage));
             }
         });

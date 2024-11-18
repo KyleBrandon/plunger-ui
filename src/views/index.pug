@@ -1,6 +1,11 @@
 extends layout
 
 block content
+    .banner-container
+        .banner-section(data-status="alert" data-id="alert-messages" style="display: none;")
+            h3 Alert Messages
+        .banner-section(data-status="good" data-id="good-messages" style="display: none;")
+            h3 Good Messages
     .container
         .header
             h1= title
