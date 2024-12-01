@@ -82,6 +82,34 @@ html
           cursor: not-allowed;
           opacity: 0.6;
       }
+      .banner-container {
+          width: 100%;
+          margin-bottom: 10px;
+      }
+      .banner-section {
+          padding: 10px;
+          margin-bottom: 5px;
+          border-radius: 4px;
+      }
+      .banner-section h3 {
+          margin-top: 0;
+          font-size: 16px;
+          text-align: center;
+      }
+      .banner-section[data-status="alert"] {
+          background-color: #d4edda;
+          color: #155724;
+      }
+      .banner-section[data-status="error"] {
+          background-color: #f8d7da;
+          color: #721c24;
+      }
+      .banner-text {
+          margin: 0;
+          padding: 5px 0;
+          text-align: center;
+      }
+
   body
     block content
 
