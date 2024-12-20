@@ -69,6 +69,28 @@ async function readOzoneStatus(req: Request) {
     return null;
 }
 
+router.post(
+    '/notify-temp-reached',
+    async function (req: Request, res: Response) {
+        const { target_temp } = req.body;
+        const data = {
+            target_temperature: target_temp,
+        };
+        try {
+            await axios.post(
+                buildPlungeServerURL(req, '/v1/temperatures/notify'),
+                data,
+            );
+        } catch (error) {
+            if (axios.isAxiosError(error)) {
+                handleRequestError(error);
+            } else {
+                console.error('unexpected error:', error);
+            }
+        }
+    },
+);
+
 router.post('/change-filter', async function (req: Request, res: Response) {
     const { date } = req.body;
     const filterDate = new Date(date);

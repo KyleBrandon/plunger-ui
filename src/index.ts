@@ -48,7 +48,7 @@ const server = http.createServer(app);
 const wsServer = new WebSocketServer({ server });
 
 let remoteWebSocket: WebSocket | null = null;
-const remoteWSUrl = `ws://${plungeServerIP}:${plungeServerPort}/v2/status/ws`;
+const remoteWSUrl = `ws://${plungeServerIP}:${plungeServerPort}/v1/status/ws`;
 
 function connectToPlungeServer() {
     remoteWebSocket = new WebSocket(remoteWSUrl);
