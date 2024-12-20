@@ -48,7 +48,7 @@ const server = http.createServer(app);
 const wsServer = new WebSocketServer({ server });
 
 let remoteWebSocket: WebSocket | null = null;
-const remoteWSUrl = `ws://${plungeServerIP}:${plungeServerPort}/v2/status/ws`;
+const remoteWSUrl = `ws://${plungeServerIP}:${plungeServerPort}/v1/status/ws`;
 
 function connectToPlungeServer() {
     remoteWebSocket = new WebSocket(remoteWSUrl);
@@ -61,7 +61,7 @@ function connectToPlungeServer() {
         let parsedMessage = JSON.parse(message.toString('utf-8'));
 
         wsServer.clients.forEach((client) => {
-           if (client.readyState === WebSocket.OPEN) {
+            if (client.readyState === WebSocket.OPEN) {
                 client.send(JSON.stringify(parsedMessage));
             }
         });

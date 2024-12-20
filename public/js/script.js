@@ -149,6 +149,24 @@ $(document).ready(function () {
         );
     }
 
+    $('#temp-reached-form').on('submit', async function (e) {
+        e.preventDefault();
+
+        const value = $('#temp-reached').val();
+        console.log('notify temp: ', value);
+        $.ajax({
+            url: '/api/notify-temp-reached',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ target_temp: value }),
+            success: function (data) {
+                console.log('notify temp:', data);
+            },
+            error: function (xhr, status, error) {
+                console.error(`Error: ${status} ${error}`);
+            },
+        });
+    });
     $('#filter-change-form').on('submit', async function (e) {
         e.preventDefault();
 

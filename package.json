@@ -6,7 +6,8 @@
     "scripts": {
         "build": "tsc",
         "start": "node dist/index.js",
-        "dev": "ts-node-dev --respawn --transpile-only src/index.ts --port 3000 --plungeServerIP 10.0.4.149 --plungeServerPort 8080"
+        "dev": "ts-node-dev --respawn --transpile-only src/index.ts --port 3000 --plungeServerIP 10.0.4.149 --plungeServerPort 8080",
+        "local_dev": "ts-node-dev --respawn --transpile-only src/index.ts --port 3000 --plungeServerIP localhost --plungeServerPort 8080"
     },
     "keywords": [],
     "author": "",
