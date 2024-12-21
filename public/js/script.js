@@ -22,6 +22,28 @@ $(document).ready(function () {
     });
 
     function updateCellData(sensorData) {
+        // const alertSection = document.querySelector(
+        //     '[data-id="alert-messages"]',
+        // );
+        // alertSection.innerHTML = '';
+        //
+        // const errorSection = document.querySelector(
+        //     '[data-id="error-messages"]',
+        // );
+        // errorSection.innerHTML = '';
+        //
+        // sensorData.messages.forEach((message) => {
+        //     const p = document.createElement('h3');
+        //     p.className = 'banner-text';
+        //     p.textContent = message.message;
+        //
+        //     if (message.type === 'alert') {
+        //         alertSection.appendChild(p);
+        //     } else if (message.type === 'error') {
+        //         errorSection.appendChild(p);
+        //     }
+        // });
+        //
         updateTemperatureStatus(sensorData);
         updatePlungerStatus(sensorData);
         updateOzoneStatus(sensorData);
@@ -67,18 +89,14 @@ $(document).ready(function () {
     }
 
     function updateTemperatureStatus(sensorData) {
-        let waterMessage = sensorData.water_temp_error;
-        if (!waterMessage) {
-            waterMessage = `${sensorData.water_temp.toFixed(1)} °F`;
-        }
-        $(`.cell-data[data-id='current-water-temp'] span`).text(waterMessage);
+        let waterTemperature = `${sensorData.water_temp.toFixed(1)} °F`;
+        $(`.cell-data[data-id='current-water-temp'] span`).text(
+            waterTemperature,
+        );
 
         // update the current room temperature
-        let roomMessage = sensorData.room_temp_error;
-        if (!roomMessage) {
-            roomMessage = `${sensorData.room_temp.toFixed(1)} °F`;
-        }
-        $(`.cell-data[data-id='current-room-temp'] span`).text(roomMessage);
+        let roomTemperature = `${sensorData.room_temp.toFixed(1)} °F`;
+        $(`.cell-data[data-id='current-room-temp'] span`).text(roomTemperature);
     }
 
     function updateOzoneStatus(sensorData) {
@@ -106,37 +124,23 @@ $(document).ready(function () {
     }
 
     function updatePumpStatus(sensorData) {
-        let pumpMessage = sensorData.pump_error;
-        if (!pumpMessage) {
-            pumpMessage = sensorData.pump_on ? 'On' : 'Off';
-        }
-
-        $(`.cell-data[data-id='pump-status'] span`).text(pumpMessage);
-
         if (sensorData.pump_on) {
+            $(`.cell-data[data-id='pump-status'] span`).text('On');
             $('#pump-power').text('Stop Pump');
         } else {
+            $(`.cell-data[data-id='pump-status'] span`).text('Off');
             $('#pump-power').text('Start Pump');
         }
     }
 
     function updateLeakStatus(sensorData) {
         // update leak indication
-        let leakMessage = sensorData.leak_status_error;
-        if (!leakMessage) {
-            leakMessage = sensorData.leak_detected ? 'True' : 'False';
-        }
-        $(`.cell-data[data-id='leak-present'] span`).text(leakMessage);
+        $(`.cell-data[data-id='leak-present'] span`).text(
+            sensorData.leak_detected ? 'True' : 'False',
+        );
     }
 
     function updateFilterStatus(sensorData) {
-        let filterMessage = sensorData.filter_status_error;
-        if (!filterMessage) {
-            filterMessage = toLocaleTime(sensorData.filter.changed_at);
-        }
-
-        // TODO: do something with 'filter.change_due'
-
         $(`.cell-data[data-id='last-filter-changed-at'] span`).text(
             toLocaleDateTime(sensorData.filter.changed_at),
         );
@@ -145,6 +149,23 @@ $(document).ready(function () {
         );
     }
 
+    $('#temp-reached-form').on('submit', async function (e) {
+        e.preventDefault();
+
+        const value = $('#notify-temp-reached').val();
+        $.ajax({
+            url: '/api/notify-temp-reached',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ target_temp: value }),
+            success: function (data) {
+                console.log('notify temp:', data);
+            },
+            error: function (xhr, status, error) {
+                console.error(`Error: ${status} ${error}`);
+            },
+        });
+    });
     $('#filter-change-form').on('submit', async function (e) {
         e.preventDefault();
 

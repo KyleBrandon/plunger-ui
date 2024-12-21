@@ -1,6 +1,11 @@
 extends layout
 
 block content
+    .banner-container
+        .banner-section(data-status="alert" data-id="alert-messages" style="display: none;")
+            h3 Alert Messages
+        .banner-section(data-status="good" data-id="good-messages" style="display: none;")
+            h3 Good Messages
     .container
         .header
             h1= title
@@ -11,6 +16,12 @@ block content
                     .cell-display
                         p.cell-data( data-id="current-water-temp" ) Current Water: <span/>
                         p.cell-data( data-id="current-room-temp" ) Current Room: <span/>
+                        p.cell-data( data-id="temp-notification" )
+                            div.cell-data
+                                form#temp-reached-form(action="", method="POST")
+                                    label(for="notify_temp") Target Temperature:
+                                    input#notify-temp-reached(type="text", name="notify_temp" placeholder='Temperature')
+                                    button(type="submit") Submit
 
             .column
                 .cell
@@ -20,11 +31,10 @@ block content
                         p.cell-data( data-id="next-filter-change-on" ) Next Change On: <span/>
                         p.cell-data( data-id="date-picker" )
                             div.flatpickr-container.cell-data  
-                                form#filter-change-form(action="/api/change-filter", method="POST")
+                                form#filter-change-form(action="", method="POST")
                                     label(for="date") Pick a Date:
                                     input#filter-change-date(type="text", name="date" data-input placeholder='Select a date')
                                     button(type="submit") Submit
-
         .row
             .column
                 .cell
