@@ -74,7 +74,7 @@ router.post(
     async function (req: Request, res: Response) {
         const { target_temp } = req.body;
         const data = {
-            target_temperature: target_temp,
+            temperature_target: parseFloat(target_temp),
         };
         try {
             await axios.post(
@@ -102,7 +102,7 @@ router.post('/change-filter', async function (req: Request, res: Response) {
         remind_at: remindDate,
     };
     try {
-        await axios.post(buildPlungeServerURL(req, '/v2/filters/change'), data);
+        await axios.post(buildPlungeServerURL(req, '/v1/filters/change'), data);
     } catch (error) {
         if (axios.isAxiosError(error)) {
             handleRequestError(error);
@@ -147,11 +147,11 @@ router.post('/plunge', async function (req: Request, res: Response) {
         let response: AxiosResponse;
         if (plungeStatus.running) {
             response = await axios.put(
-                buildPlungeServerURL(req, '/v2/plunges/stop'),
+                buildPlungeServerURL(req, '/v1/plunges/stop'),
             );
         } else {
             response = await axios.post(
-                buildPlungeServerURL(req, '/v2/plunges/start'),
+                buildPlungeServerURL(req, '/v1/punges/start'),
             );
         }
 
@@ -170,7 +170,7 @@ async function readPlungeStatus(req: Request) {
     let plungeResponse: PlungeResponse = {};
     try {
         const response = await axios.get(
-            buildPlungeServerURL(req, '/v2/plunges/status'),
+            buildPlungeServerURL(req, '/v1/plunges/status'),
         );
         plungeResponse = response.data as PlungeResponse;
     } catch (error) {

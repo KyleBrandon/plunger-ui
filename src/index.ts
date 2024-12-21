@@ -43,7 +43,6 @@ const argv = yargs.options({
 const { port, plungeServerIP, plungeServerPort } = argv;
 
 app.locals.plungeServerIP = `http://${plungeServerIP}:${plungeServerPort}`;
-
 const server = http.createServer(app);
 const wsServer = new WebSocketServer({ server });
 

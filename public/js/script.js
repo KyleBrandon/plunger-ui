@@ -152,8 +152,7 @@ $(document).ready(function () {
     $('#temp-reached-form').on('submit', async function (e) {
         e.preventDefault();
 
-        const value = $('#temp-reached').val();
-        console.log('notify temp: ', value);
+        const value = $('#notify-temp-reached').val();
         $.ajax({
             url: '/api/notify-temp-reached',
             method: 'POST',
