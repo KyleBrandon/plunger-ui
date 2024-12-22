@@ -151,7 +151,7 @@ router.post('/plunge', async function (req: Request, res: Response) {
             );
         } else {
             response = await axios.post(
-                buildPlungeServerURL(req, '/v1/punges/start'),
+                buildPlungeServerURL(req, '/v1/plunges/start'),
             );
         }
 
