@@ -58,9 +58,9 @@ $(document).ready(function () {
 
             updatePlungeButton(ps.running);
 
-            if (data.water_temp) {
+            if (data.temperature.water_temp) {
                 $(`.cell-data[data-id='plunge-current-temperature'] span`).text(
-                    data.water_temp.toFixed(1),
+                    data.temperature.water_temp.toFixed(1),
                 );
             }
             if (ps.average_water_temp) {
@@ -89,13 +89,13 @@ $(document).ready(function () {
     }
 
     function updateTemperatureStatus(sensorData) {
-        let waterTemperature = `${sensorData.water_temp.toFixed(1)} °F`;
+        let waterTemperature = `${sensorData.temperature.water_temp.toFixed(1)} °F`;
         $(`.cell-data[data-id='current-water-temp'] span`).text(
             waterTemperature,
         );
 
         // update the current room temperature
-        let roomTemperature = `${sensorData.room_temp.toFixed(1)} °F`;
+        let roomTemperature = `${sensorData.temperature.room_temp.toFixed(1)} °F`;
         $(`.cell-data[data-id='current-room-temp'] span`).text(roomTemperature);
     }
 
