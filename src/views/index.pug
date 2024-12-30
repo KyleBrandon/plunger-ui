@@ -4,8 +4,6 @@ block content
     .banner-container
         .banner-section(data-status="alert" data-id="alert-messages" style="display: none;")
             h3 Alert Messages
-        .banner-section(data-status="good" data-id="good-messages" style="display: none;")
-            h3 Good Messages
     .container
         .header
             h1= title
@@ -17,9 +15,10 @@ block content
                         p.cell-data( data-id="current-water-temp" ) Current Water: <span/>
                         p.cell-data( data-id="current-room-temp" ) Current Room: <span/>
                         p.cell-data( data-id="temp-notification" )
+                            div.cell-data( data-id="target-temperature") Target Temperature: <span/>
                             div.cell-data
                                 form#temp-reached-form(action="", method="POST")
-                                    label(for="notify_temp") Target Temperature:
+                                    label(for="notify_temp") Update Target:
                                     input#notify-temp-reached(type="text", name="notify_temp" placeholder='Temperature')
                                     button(type="submit") Submit
 

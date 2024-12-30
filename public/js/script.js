@@ -97,6 +97,12 @@ $(document).ready(function () {
         // update the current room temperature
         let roomTemperature = `${sensorData.temperature.room_temp.toFixed(1)} °F`;
         $(`.cell-data[data-id='current-room-temp'] span`).text(roomTemperature);
+
+        if (sensorData.temperature.monitor_target_temp) {
+            $(`.cell-data[data-id='target-temperature'] span`).text(
+                sensorData.temperature.target_temp,
+            );
+        }
     }
 
     function updateOzoneStatus(sensorData) {
