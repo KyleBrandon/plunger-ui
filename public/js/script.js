@@ -58,9 +58,9 @@ $(document).ready(function () {
 
             updatePlungeButton(ps.running);
 
-            if (data.temperature.water_temp) {
+            if (data.water_temp) {
                 $(`.cell-data[data-id='plunge-current-temperature'] span`).text(
-                    data.temperature.water_temp.toFixed(1),
+                    data.water_temp.toFixed(1),
                 );
             }
             if (ps.average_water_temp) {
@@ -89,20 +89,14 @@ $(document).ready(function () {
     }
 
     function updateTemperatureStatus(sensorData) {
-        let waterTemperature = `${sensorData.temperature.water_temp.toFixed(1)} °F`;
+        let waterTemperature = `${sensorData.water_temp.toFixed(1)} °F`;
         $(`.cell-data[data-id='current-water-temp'] span`).text(
             waterTemperature,
         );
 
         // update the current room temperature
-        let roomTemperature = `${sensorData.temperature.room_temp.toFixed(1)} °F`;
+        let roomTemperature = `${sensorData.room_temp.toFixed(1)} °F`;
         $(`.cell-data[data-id='current-room-temp'] span`).text(roomTemperature);
-
-        if (sensorData.temperature.monitor_target_temp) {
-            $(`.cell-data[data-id='target-temperature'] span`).text(
-                sensorData.temperature.target_temp,
-            );
-        }
     }
 
     function updateOzoneStatus(sensorData) {
@@ -194,7 +188,7 @@ $(document).ready(function () {
         $.ajax({
             url: '/api/ozone',
             method: 'POST',
-            success: function (data) {},
+            success: function (data) { },
             error: function (xhr, status, error) {
                 console.error(`Error: ${status} ${error}`);
             },
@@ -218,7 +212,7 @@ $(document).ready(function () {
             $.ajax({
                 url: '/api/pump',
                 method: 'POST',
-                success: function (data) {},
+                success: function (data) { },
                 error: function (xhr, status, error) {
                     console.error(`Error: ${status} ${error}`);
                 },
