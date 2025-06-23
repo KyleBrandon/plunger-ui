@@ -188,7 +188,7 @@ $(document).ready(function () {
         $.ajax({
             url: '/api/ozone',
             method: 'POST',
-            success: function (data) {},
+            success: function (data) { },
             error: function (xhr, status, error) {
                 console.error(`Error: ${status} ${error}`);
             },
@@ -212,7 +212,7 @@ $(document).ready(function () {
             $.ajax({
                 url: '/api/pump',
                 method: 'POST',
-                success: function (data) {},
+                success: function (data) { },
                 error: function (xhr, status, error) {
                     console.error(`Error: ${status} ${error}`);
                 },
